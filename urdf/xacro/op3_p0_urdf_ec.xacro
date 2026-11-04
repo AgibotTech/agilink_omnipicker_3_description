@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="OP3_P0_URDF_EC">
+  <xacro:include filename="$(find omnipicker_3_description)/urdf/OP3_P0_URDF_EC.urdf" />
+</robot>

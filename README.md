@@ -1,93 +1,107 @@
-# omnipicker_3_description
+# OP3 P0 ROS 2 Description
 
+[English](README_EN.md) | 简体中文
 
+`omnipicker_3_description` 提供 OP3 P0 夹爪模型、单滑条闭环运动学控制及 RViz2 可视化。适用于 ROS 2 Jazzy / Humble，使用 `ament_cmake` 和 `colcon` 构建。
 
-## Getting started
+## 包内容
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+| 路径 | 内容 |
+| --- | --- |
+| `urdf/OP3_P0_URDF_EC.urdf` | 主模型：几何、关节及惯性参数 |
+| `urdf/xacro/op3_p0_urdf_ec.xacro` | Xacro 入口 |
+| `meshes/` | STL 网格 |
+| `rviz/` | RViz2 配置 |
+| `launch/` | ROS 2 启动文件 |
+| `scripts/gripper_control.py` | 单滑条及闭环状态发布节点 |
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+构建后，`urdf/`、`meshes/`、`rviz/` 下的资源安装到 `share/omnipicker_3_description/`，控制脚本安装到 `lib/omnipicker_3_description/`。
 
-## Add your files
+## 安装与启动
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+先安装 ROS 2。以下以 Jazzy 为例，Humble 环境将 `jazzy` 替换为 `humble`；将 `/path/to/OP3_P0_URDF_EC` 替换为交付文件夹路径。
 
+```bash
+source /opt/ros/jazzy/setup.bash
+sudo apt update
+sudo apt install python3-colcon-common-extensions \
+  ros-jazzy-ament-cmake ros-jazzy-ament-index-python \
+  ros-jazzy-launch ros-jazzy-launch-ros ros-jazzy-xacro \
+  ros-jazzy-robot-state-publisher ros-jazzy-rclpy ros-jazzy-sensor-msgs \
+  ros-jazzy-std-msgs ros-jazzy-python-qt-binding ros-jazzy-rviz2
+
+mkdir -p ~/op3_ws/src
+cp -r /path/to/OP3_P0_URDF_EC ~/op3_ws/src/omnipicker_3_description
+cd ~/op3_ws
+colcon build --packages-select omnipicker_3_description
+source install/setup.bash
+ros2 launch omnipicker_3_description op3_p0_urdf_ec_launch.py
 ```
-cd existing_repo
-git remote add origin https://code.agibot.com/agilink/urdf/omnipicker_3_description.git
-git branch -M main
-git push -uf origin main
+
+每个新终端均需加载 ROS 2 环境及 `~/op3_ws/install/setup.bash`。
+
+## 开合控制
+
+- 窗口仅有 `joint1` 一根滑条：`0～20 mm`，步进 `0.01 mm`；零行程对应闭合端，增大行程打开夹爪。
+- 节点自动求解左右闭环，发布全部 13 个非固定关节的 `/joint_states`；无需单独调节从动关节。
+- 外部指令话题为 `/joint1_command`，类型为 `std_msgs/msg/Float64`，单位为米，范围 `0～0.020`。
+
+例如移动到 `10 mm`：
+
+```bash
+ros2 topic pub --once /joint1_command std_msgs/msg/Float64 "{data: 0.010}"
 ```
 
-## Integrate with your tools
+越界、非有限值或无法闭环的指令会被拒绝，并保持上一有效姿态。GUI 同步显示外部指令。此接口仅用于运动学预览，不直接驱动硬件，也不执行速度规划。
 
-- [ ] [Set up project integrations](https://code.agibot.com/agilink/urdf/omnipicker_3_description/-/settings/integrations)
+## 启动参数
 
-## Collaborate with your team
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| `gui` | `true` | 显示单滑条窗口 |
+| `rviz` | `true` | 启动 RViz2 |
+| `publish_joint_states` | `true` | 启用本包的闭环状态发布节点 |
+| `use_sim_time` | `false` | 使用仿真器的 `/clock` |
+| `initial_position` | `0.0` | 初始行程，单位为米 |
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+无界面启动并设定初始行程为 `10 mm`：
 
-## Test and Deploy
+```bash
+ros2 launch omnipicker_3_description op3_p0_urdf_ec_launch.py \
+  gui:=false rviz:=false initial_position:=0.010
+```
 
-Use the built-in continuous integration in GitLab.
+接入外部关节状态时，设置 `publish_joint_states:=false`。此时滑条和闭环节点均关闭，外部节点必须发布完整 `/joint_states`，仅发送 `/joint1_command` 无效。启用 `use_sim_time:=true` 时需持续提供 `/clock`。
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## 模型与接入
 
-***
+- 模型包含 16 个连杆、15 个关节，实体总质量 `0.5618 kg`，根坐标系为 `base_link`。
+- 单位为 m、kg、rad、kg·m²；惯量定义在重心处，惯性坐标轴与连杆坐标轴一致。
+- `link13`、`link23`、`link18`、`link28` 为无独立质量和网格的连接参考节点。
+- 网格 URI 为 `package://omnipicker_3_description/meshes/...`。外部导入器需解析到安装包的 `share/omnipicker_3_description/` 或对应源码资源。
+- 基座组件 STL 以毫米建模，URDF 使用 `0.001` 缩放；整体连杆 STL 使用米。导入时遵循各网格 `scale`，不要重复缩放。
 
-# Editing this README
+从安装包展开 Xacro：
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+package_share="$(ros2 pkg prefix omnipicker_3_description)/share/omnipicker_3_description"
+ros2 run xacro xacro "$package_share/urdf/xacro/op3_p0_urdf_ec.xacro" \
+  -o /tmp/op3_p0_model.urdf
+```
 
-## Suggestions for a good README
+RViz2 固定坐标系设为 `base_link`；RobotModel 使用 `/robot_description`，QoS 为 Reliable / Transient Local。模型不显示时，检查包环境、网格路径及 `/joint_states`、TF 发布情况。
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+本包不包含动力学仿真工程。Gazebo、Isaac Sim 等需另行配置驱动、控制器、世界及闭环约束；关节 `effort`、`velocity` 当前为零，应按实际硬件设置。
 
-## Name
-Choose a self-explaining name for your project.
+## STL 文件名对照
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+`meshes/` 为平铺目录，原中文文件名已改为英文：
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+| 原文件名 | 现文件名 |
+| --- | --- |
+| 上壳_l / 上壳_r | `upper_shell_l` / `upper_shell_r` |
+| 下壳_l / 下壳_r | `lower_shell_l` / `lower_shell_r` |
+| 法兰接口 | `flange` |
+| 滚珠丝杠 | `ball_screw` |
+| 轴承端盖 | `bearing_cap` |
+| 透光板_l / 透光板_r | `light_panel_l` / `light_panel_r` |
