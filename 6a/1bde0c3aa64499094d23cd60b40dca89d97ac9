@@ -1,0 +1,67 @@
+---
+{
+  "schema_version": "authorship/3.1.0",
+  "tlab_version": "0.13.0",
+  "base_commit_sha": "6a1bde0c3aa64499094d23cd60b40dca89d97ac9",
+  "prompts": {},
+  "changes": [
+    {
+      "new_path": "CMakeLists.txt",
+      "additions": {
+        "human": 20
+      }
+    },
+    {
+      "new_path": "README_EN.md",
+      "additions": {
+        "human": 94
+      }
+    },
+    {
+      "new_path": "launch/op3_p0_urdf_ec_launch.py",
+      "additions": {
+        "human": 79
+      }
+    },
+    {
+      "new_path": "package.xml",
+      "additions": {
+        "human": 25
+      }
+    },
+    {
+      "new_path": "rviz/op3_p0_urdf_ec.rviz",
+      "additions": {
+        "human": 61
+      }
+    },
+    {
+      "new_path": "scripts/gripper_control.py",
+      "additions": {
+        "human": 357
+      }
+    },
+    {
+      "new_path": "urdf/OP3_P0_URDF_EC.urdf",
+      "additions": {
+        "human": 446
+      }
+    },
+    {
+      "new_path": "urdf/xacro/op3_p0_urdf_ec.xacro",
+      "additions": {
+        "human": 4
+      }
+    },
+    {
+      "old_path": "README.md",
+      "new_path": "README.md",
+      "additions": {
+        "human": 78
+      },
+      "deletions": {
+        "human": 64
+      }
+    }
+  ]
+}
